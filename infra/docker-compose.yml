@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: dimmel
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: dimmel
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  api:
+    build: ../apps/api
+    environment:
+      DATABASE_URL: postgresql+psycopg2://dimmel:password@db:5432/dimmel
+      JWT_SECRET: change-me
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      MAX_UPLOAD_MB: 25
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - api_uploads:/data/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  web:
+    build: ../apps/web
+    environment:
+      VITE_API_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  db_data:
+  api_uploads:
